@@ -23,6 +23,7 @@ Task tool (general-purpose):
     | Spec Alignment | Plan covers spec requirements, no major scope creep |
     | Task Decomposition | Tasks have clear boundaries, steps are actionable |
     | Buildability | Could an engineer follow this plan without getting stuck? |
+    | TDD Structure | Feature/bugfix tasks reference TDD cycle and have acceptance criteria; only config/tooling tasks may skip TDD |
 
     ## Calibration
 
