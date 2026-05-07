@@ -16,18 +16,19 @@ Load plan, review critically, execute all tasks, report when complete.
 ## The Process
 
 ### Step 1: Load and Review Plan
-1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
+1. Read `overview.md` (e.g., `docs/superpowers/plans/<feature-name>/overview.md`) to get the task index — do NOT read individual `task-NN.md` files yet
+2. Review the goal, architecture, and task list critically — identify any questions or concerns
 3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+4. If no concerns: Create TodoWrite from the task index and proceed
 
 ### Step 2: Execute Tasks
 
 For each task:
-1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
-4. Mark as completed
+1. Mark as in_progress in TodoWrite
+2. Read the task's `task-NN.md` file now to get its full contract and acceptance criteria
+3. Follow each step exactly (plan has bite-sized steps)
+4. Run verifications as specified
+5. Mark as completed in TodoWrite and update `overview.md`: change `- [ ]` to `- [x]` for that task
 
 ### Step 3: Complete Development
 
@@ -61,6 +62,7 @@ After all tasks complete and verified:
 - Reference skills when plan says to
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch without explicit user consent
+- Update `overview.md` checkboxes as tasks complete — this is what enables resuming if the session is interrupted
 
 ## Integration
 

@@ -55,15 +55,15 @@ digraph process {
         "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
         "Code quality reviewer subagent approves?" [shape=diamond];
         "Implementer subagent fixes quality issues" [shape=box];
-        "Mark task complete in TodoWrite" [shape=box];
+        "Mark task complete in TodoWrite + update overview.md [ ] → [x]" [shape=box];
     }
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "Read overview.md, extract task index (names + file paths), create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Read overview.md, extract task index (names + file paths), create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -76,8 +76,8 @@ digraph process {
     "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
-    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite + update overview.md [ ] → [x]" [label="yes"];
+    "Mark task complete in TodoWrite + update overview.md [ ] → [x]" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
     "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
@@ -128,13 +128,13 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
-[Read plan file once: docs/superpowers/plans/feature-plan.md]
-[Extract all 5 tasks with full text and context]
-[Create TodoWrite with all tasks]
+[Read overview.md once: docs/superpowers/plans/feature-name/overview.md]
+[Extract task index (task names, descriptions, file paths) — do NOT read task-NN.md files yet]
+[Create TodoWrite with all tasks from the index]
 
 Task 1: Hook installation script
 
-[Get Task 1 text and context (already extracted)]
+[Read task-01.md now: docs/superpowers/plans/feature-name/task-01.md]
 [Dispatch implementation subagent with full task text + context]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
@@ -154,11 +154,12 @@ Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
 [Get git SHAs, dispatch code quality reviewer]
 Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
-[Mark Task 1 complete]
+[Mark Task 1 complete in TodoWrite]
+[Update overview.md: "- [ ] Task 1" → "- [x] Task 1"]
 
 Task 2: Recovery modes
 
-[Get Task 2 text and context (already extracted)]
+[Read task-02.md now: docs/superpowers/plans/feature-name/task-02.md]
 [Dispatch implementation subagent with full task text + context]
 
 Implementer: [No questions, proceeds]
@@ -188,7 +189,8 @@ Implementer: Extracted PROGRESS_INTERVAL constant
 [Code reviewer reviews again]
 Code reviewer: ✅ Approved
 
-[Mark Task 2 complete]
+[Mark Task 2 complete in TodoWrite]
+[Update overview.md: "- [ ] Task 2" → "- [x] Task 2"]
 
 ...
 
@@ -213,9 +215,9 @@ Done!
 - Review checkpoints automatic
 
 **Efficiency gains:**
-- No file reading overhead (controller provides full text)
-- Controller curates exactly what context is needed
-- Subagent gets complete information upfront
+- Read `overview.md` once to build task index; read `task-NN.md` only when dispatching that task
+- Controller curates exactly what context is needed per task
+- Subagent gets complete task information upfront (full task-NN.md text)
 - Questions surfaced before work begins (not after)
 
 **Quality gates:**
@@ -238,7 +240,7 @@ Done!
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
-- Make subagent read plan file (provide full text instead)
+- Make subagent read task files (read task-NN.md yourself and provide full text to subagent)
 - Skip scene-setting context (subagent needs to understand where task fits)
 - Ignore subagent questions (answer before letting them proceed)
 - Accept "close enough" on spec compliance (spec reviewer found issues = not done)
@@ -246,6 +248,7 @@ Done!
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- Skip updating `overview.md` checkboxes — these persist across sessions and enable resuming interrupted runs
 
 **If subagent asks questions:**
 - Answer clearly and completely
