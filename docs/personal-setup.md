@@ -61,10 +61,11 @@ npx skills add https://github.com/tuanta564/superpowers/tree/customize/skills -g
 
 Ran successfully on this machine on the `tt14` CCS instance — the CLI
 auto-detected the running agent's instance directory
-(`~/.ccs/instances/tt14/skills/`) rather than plain `~/.claude/skills/`. On a
-machine with only one Claude Code account, it installs straight to
-`~/.claude/skills/`. On a machine with multiple CCS instances, re-run once per
-instance (or check where it landed with `npx skills list -g -a claude-code`).
+(`~/.ccs/instances/tt14/skills/`) rather than plain `~/.claude/skills/`
+(because `CLAUDE_CONFIG_DIR` was set to that instance). On a machine with only
+one Claude Code account, it installs straight to `~/.claude/skills/`. See
+"How the CCS multi-account skill sharing works" below for why one run is
+enough to cover every account on this machine.
 
 **Pulling in later changes:**
 
@@ -75,6 +76,42 @@ npx skills update -g
 **Once `customize` is merged into this fork's `main`**, switch the
 source in the commands above from `tree/customize/skills` to plain
 `tuanta564/superpowers` (defaults to `main`).
+
+## How the CCS multi-account skill sharing works
+
+This machine runs multiple Claude Code accounts through a personal CCS
+wrapper (`~/.ccs/instances/{tt14,tt564,ez01}`, each with its own
+`CLAUDE_CONFIG_DIR`). Verified on 2026-07-24:
+
+- `~/.ccs/shared/skills/` is the actual shared store.
+- `~/.ccs/instances/tt14/skills`, `tt564/skills`, `ez01/skills` are each a
+  **directory symlink** to `~/.ccs/shared/skills`.
+- `~/.claude/skills/<name>/*` (the plain, non-CCS default) are **real files
+  hardlinked** (same inode) to the matching files in `~/.ccs/shared/skills/`
+  — not a symlink itself, but the same data on disk.
+
+Net effect: installing/updating skills from *any one* of these four
+locations updates all the others, so `npx skills add/update` only needs to
+run once on this machine, in whichever account happens to be active — it
+does not need to be repeated per CCS instance.
+
+**Fragility to watch for:** the `~/.claude/skills` side of this is a
+hardlink, not a symlink. Hardlinks break silently if something replaces a
+file instead of editing it in place (write-to-temp-then-rename, which many
+editors and CLIs do for safety) — the two copies then quietly diverge with
+no error. After running `npx skills update`, spot-check that they're still
+in sync:
+
+```bash
+for f in ~/.claude/skills/*/SKILL.md; do
+  name=$(basename "$(dirname "$f")")
+  shared="$HOME/.ccs/shared/skills/$name/SKILL.md"
+  [ -f "$shared" ] || continue
+  [ "$(stat -f%i "$f")" = "$(stat -f%i "$shared")" ] || echo "DIVERGED: $name"
+done
+```
+
+No output means everything is still hardlinked together correctly.
 
 ## Installing commands on a new machine
 
