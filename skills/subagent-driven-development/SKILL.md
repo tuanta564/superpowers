@@ -120,10 +120,12 @@ sequences — the single most expensive failure observed. Track progress in
 a ledger file, not only in todos.
 
 - Each plan owns a workspace: at skill start, run this skill's
-  `scripts/sdd-workspace PLAN_FILE` — it prints the plan's git-ignored
+  `scripts/sdd-workspace PLAN` — it prints the plan's git-ignored
   directory (`<repo-root>/.superpowers/sdd/<plan-basename>/`), home to
   every artifact for THIS plan: ledger, briefs, reports, review packages.
-  Another plan's directory is never yours to read or write.
+  Another plan's directory is never yours to read or write. PLAN is either
+  a single plan file, or a folder-based plan (writing-plans' `overview.md`
+  + `task-NN.md` layout) — pass the plan folder in that case.
 - Check for this plan's ledger at `<workspace>/progress.md`. If its first
   line names your plan file, tasks with a `Task <N>: complete` line are DONE
   — do not re-dispatch them; resume at the first task without one. A task
@@ -139,8 +141,9 @@ a ledger file, not only in todos.
 - `git clean -fdx` will destroy the workspace (it's git-ignored scratch); if
   that happens, recover from `git log`.
 
-Read the plan once, note its context and Global Constraints, and create a
-todo per task.
+Read the plan once (a folder-based plan means `overview.md`, not the
+individual `task-NN.md` files — those load one at a time in the task loop),
+note its context and Global Constraints, and create a todo per task.
 
 Before dispatching Task 1, scan the plan once for conflicts:
 
@@ -203,7 +206,9 @@ Record BASE (`git rev-parse HEAD`) before dispatching — the review package
 and fix-round diffs need it.
 
 - **Task brief:** before dispatching an implementer, run this skill's
-  `scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a
+  `scripts/task-brief PLAN N` — for a folder-based plan, `task-NN.md` is
+  already self-contained and the script just hands back its path, no
+  extraction; for a single-file plan it extracts the task's full text to a
   uniquely named file and prints the path. Compose the dispatch so the
   brief stays the single source of
   requirements. Your dispatch should contain: (1) one line on where this
@@ -213,7 +218,7 @@ and fix-round diffs need it.
   know; (4) your resolution of any ambiguity you noticed in the brief;
   (5) the report-file path and report contract. Exact values (numbers,
   magic strings, signatures, test cases) appear only in the brief. Never
-  make a subagent read the whole plan file.
+  make a subagent read the whole plan.
 - **Report file:** name the implementer's report file after the brief
   (brief `…/task-N-brief.md` → report `…/task-N-report.md`) and put it in
   the dispatch prompt. The implementer writes the full report there and
@@ -235,7 +240,7 @@ Template: [implementer-prompt.md](implementer-prompt.md)
 
 Implementer subagents report one of four statuses. Handle each appropriately:
 
-**DONE:** Generate the review package (`scripts/review-package PLAN_FILE BASE HEAD`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path.
+**DONE:** Generate the review package (`scripts/review-package PLAN BASE HEAD`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path.
 
 **DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
 
@@ -262,7 +267,7 @@ required. Implementer self-review never replaces the task review; both are
 needed.
 
 - Hand the reviewer its diff as a file: run this skill's
-  `scripts/review-package PLAN_FILE BASE HEAD` and pass the reviewer the file path
+  `scripts/review-package PLAN BASE HEAD` and pass the reviewer the file path
   it prints (or, without bash: `git log --oneline`, `git diff --stat`,
   and `git diff -U10` for the range, redirected to one uniquely named
   file). The output never enters your own context, and the reviewer sees
@@ -340,7 +345,7 @@ output; dispatch the re-review once all three are present. Name the
 covering test files in the fix message — a one-line fix does not need the
 whole suite.
 
-**The re-review is scoped.** Run `scripts/review-package PLAN_FILE FIX_BASE HEAD`
+**The re-review is scoped.** Run `scripts/review-package PLAN FIX_BASE HEAD`
 where FIX_BASE is the head the previous review saw, and dispatch
 [re-review-prompt.md](re-review-prompt.md) with the findings list, the
 brief, the report file, and the printed diff path. The re-reviewer verdicts
@@ -391,7 +396,7 @@ parked-with-ruling at the cap.
 ## Final Review
 
 The final whole-branch review gets a package too: run
-`scripts/review-package PLAN_FILE MERGE_BASE HEAD` (MERGE_BASE = the commit the
+`scripts/review-package PLAN MERGE_BASE HEAD` (MERGE_BASE = the commit the
 branch started from, e.g. `git merge-base main HEAD`) and include the
 printed path in the final review dispatch, so the final reviewer reads
 one file instead of re-deriving the branch diff with git commands. Dispatch
@@ -406,7 +411,7 @@ with the complete findings list — not one fixer per finding.
 Per-finding fixers each rebuild context and re-run suites; a real
 session's final-review fix wave cost more than all its tasks combined.
 Then run exactly one scoped re-review of the fix wave
-(`scripts/review-package PLAN_FILE FIX_BASE HEAD` over the fix range,
+(`scripts/review-package PLAN FIX_BASE HEAD` over the fix range,
 [re-review-prompt.md](re-review-prompt.md)).
 Adjudicate any residual findings as in the task loop's breaker: park with
 rulings, or stop on load-bearing ones. There is no second fix wave —
@@ -459,7 +464,7 @@ Implementer: [Later]
   - Self-review: Found I missed --force flag, added it
   - Committed
 
-[Run review-package PLAN_FILE BASE HEAD; dispatch task reviewer with the printed path]
+[Run review-package PLAN BASE HEAD; dispatch task reviewer with the printed path]
 Task reviewer: Spec ✅ - all requirements met, nothing extra.
   Strengths: Good test coverage, clean. Issues: None. Task quality: Approved.
 
@@ -474,7 +479,7 @@ Implementer: [No questions]
   - 8/8 tests passing
   - Committed
 
-[Run review-package PLAN_FILE BASE HEAD; dispatch task reviewer with the printed path]
+[Run review-package PLAN BASE HEAD; dispatch task reviewer with the printed path]
 Task reviewer: Spec ❌:
   - Missing: Progress reporting (spec says "report every 100 items")
   Issues (Important): Magic number (100)
@@ -483,7 +488,7 @@ Task reviewer: Spec ❌:
 Implementer: Added progress reporting, extracted PROGRESS_INTERVAL constant.
   Re-ran test/recovery.test.js — 10/10 passing. Fix report appended.
 
-[Run review-package PLAN_FILE FIX_BASE HEAD; dispatch scoped re-review]
+[Run review-package PLAN FIX_BASE HEAD; dispatch scoped re-review]
 Re-reviewer: Missing progress reporting — ADDRESSED (src/recovery.js:41).
   Magic number — ADDRESSED (src/recovery.js:7). New breakage: none.
   Verdict: all findings addressed.
@@ -494,7 +499,7 @@ Re-reviewer: Missing progress reporting — ADDRESSED (src/recovery.js:41).
 ...
 
 [After all tasks]
-[Run review-package PLAN_FILE MERGE_BASE HEAD; dispatch final code-reviewer, most capable model]
+[Run review-package PLAN MERGE_BASE HEAD; dispatch final code-reviewer, most capable model]
 Final reviewer: All requirements met. Deferred minors triaged: none block merge.
 
 [Delete this plan's workspace — the record now lives in git]

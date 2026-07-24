@@ -3,20 +3,47 @@
 # implementer reads in one call, so the task text never has to be pasted
 # through the controller's context.
 #
-# Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
+# Usage: task-brief PLAN TASK_NUMBER [OUTFILE]
+# PLAN may be a single plan file, or a folder-based plan (writing-plans'
+# overview.md + task-NN.md layout) — pass the plan folder in that case.
 # Default OUTFILE: <repo-root>/.superpowers/sdd/<plan-basename>/task-<N>-brief.md
 # (per plan and per worktree; concurrent runs of the SAME plan in the same
 # working tree share it).
 set -euo pipefail
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-  echo "usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]" >&2
+  echo "usage: task-brief PLAN TASK_NUMBER [OUTFILE]" >&2
   exit 2
 fi
 
 plan=$1
 n=$2
-[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
+
+if [ -d "$plan" ]; then
+  # Folder-based plan: task-NN.md is already a self-contained brief, no
+  # extraction needed — just locate and hand back that file's path.
+  candidate="$plan/task-${n}.md"
+  if [ ! -f "$candidate" ] && [[ "$n" =~ ^[0-9]+$ ]]; then
+    padded=$(printf 'task-%02d.md' "$n")
+    [ -f "$plan/$padded" ] && candidate="$plan/$padded"
+  fi
+  if [ ! -f "$candidate" ]; then
+    candidate=$(ls "$plan"/task-*"${n}".md 2>/dev/null | head -1 || true)
+  fi
+  [ -n "${candidate:-}" ] && [ -f "$candidate" ] \
+    || { echo "no task-${n} file in ${plan} (expected task-${n}.md)" >&2; exit 3; }
+
+  if [ $# -eq 3 ]; then
+    out=$3
+    cp "$candidate" "$out"
+  else
+    out=$candidate
+  fi
+  echo "using ${out}: $(wc -l < "$out" | tr -d ' ') lines (folder-based plan, no extraction needed)"
+  exit 0
+fi
+
+[ -f "$plan" ] || { echo "no such plan file or directory: $plan" >&2; exit 2; }
 
 if [ $# -eq 3 ]; then
   out=$3

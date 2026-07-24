@@ -17,16 +17,18 @@
 # Single source of truth for the workspace location, so task-brief and
 # review-package cannot drift to different directories.
 #
-# Usage: sdd-workspace PLAN_FILE
+# Usage: sdd-workspace PLAN
+# PLAN may be a single plan file, or a folder-based plan (writing-plans'
+# overview.md + task-NN.md layout).
 set -euo pipefail
 
 if [ $# -ne 1 ]; then
-  echo "usage: sdd-workspace PLAN_FILE" >&2
+  echo "usage: sdd-workspace PLAN" >&2
   exit 2
 fi
 
 plan=$1
-[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
+[ -f "$plan" ] || [ -d "$plan" ] || { echo "no such plan file or directory: $plan" >&2; exit 2; }
 
 slug=$(basename "$plan" .md)
 [ -n "$slug" ] && [ "$slug" != "." ] && [ "$slug" != ".." ] \
