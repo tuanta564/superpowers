@@ -7,15 +7,17 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+Write implementation plans as bite-sized tasks with contracts and acceptance criteria. Document which files to touch, what interfaces to implement, and how to verify success — but leave the actual code to the executor and the TDD skill. DRY. YAGNI. TDD. Frequent commits.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+Assume the executor is a skilled developer who knows almost nothing about our toolset or problem domain, and will use `superpowers:test-driven-development` for implementation. Give them clear contracts and acceptance criteria, not code to copy-paste.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
 **Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/` (directory)
+- `overview.md` — header, goal, architecture, tech stack, Global Constraints, task index
+- `task-NN.md` — one file per task with its contract and acceptance criteria
 - (User preferences for plan location override this default)
 
 ## Scope Check
@@ -40,25 +42,16 @@ fresh reviewer's gate. When drawing task boundaries: fold setup,
 configuration, scaffolding, and documentation steps into the task whose
 deliverable needs them; split only where a reviewer could meaningfully
 reject one task while approving its neighbor. Each task ends with an
-independently testable deliverable.
-
-## Bite-Sized Task Granularity
-
-**Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
-- "Run the tests and make sure they pass" - step
-- "Commit" - step
+independently testable deliverable, and gets its own `task-NN.md` file.
 
 ## Plan Document Header
 
-**Every plan MUST start with this header:**
+**Every plan's `overview.md` MUST start with this header:**
 
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -73,13 +66,23 @@ naming and copy rules, platform requirements — one line each, with exact
 values copied verbatim from the spec. Every task's requirements implicitly
 include this section.]
 
+## Tasks
+
+- [ ] [Task 1: Component Name](task-01.md)
+- [ ] [Task 2: Component Name](task-02.md)
+- ...
+
 ---
 ```
 
 ## Task Structure
 
+Each task is a separate file (`task-NN.md`) containing contracts and acceptance criteria — not implementation code. The executor uses `superpowers:test-driven-development` for the RED-GREEN-REFACTOR cycle.
+
 ````markdown
 ### Task N: [Component Name]
+
+**Why:** [What this task accomplishes and how it fits the architecture]
 
 **Files:**
 - Create: `exact/path/to/file.py`
@@ -89,69 +92,60 @@ include this section.]
 **Interfaces:**
 - Consumes: [what this task uses from earlier tasks — exact signatures]
 - Produces: [what later tasks rely on — exact function names, parameter
-  and return types. A task's implementer sees only their own task; this
-  block is how they learn the names and types neighboring tasks use.]
+  and return types. A task's implementer sees only their own task file;
+  this block is how they learn the names and types neighboring tasks use.]
 
-- [ ] **Step 1: Write the failing test**
+**Contract:**
+- `function_name(param: Type) -> ReturnType` — [what it does]
+- Interface/type shapes (signatures, not bodies)
 
-```python
-def test_specific_behavior():
-    result = function(input)
-    assert result == expected
-```
+**Acceptance Criteria:**
+- [ ] [Observable behavior that proves it works]
+- [ ] [Edge case or error condition handled]
+- [ ] [Integration point verified]
 
-- [ ] **Step 2: Run test to verify it fails**
+**Constraints:**
+- [Dependencies on other tasks or external systems]
+- [Performance or compatibility requirements]
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-def function(input):
-    return expected
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
+**Test guidance:** Use superpowers:test-driven-development. Feature/bugfix tasks MUST follow RED-GREEN-REFACTOR.
 ````
 
 ## No Placeholders
 
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
+Every task file must contain the actual content an implementer needs. These are **plan failures** — never write them:
 - "TBD", "TODO", "implement later", "fill in details"
-- "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
-- References to types, functions, or methods not defined in any task
+- "Add appropriate error handling" / "add validation" / "handle edge cases" without naming the specific case
+- Acceptance criteria that restate the task name instead of describing observable behavior
+- "Similar to Task N" (spell it out — the executor may work tasks out of order and only sees their own task file)
+- References to types, functions, or methods not defined as a Produces in any task
 
-## Self-Review
+**What NOT to include in tasks:**
+- Function bodies or implementation code (the executor writes this via TDD)
+- Complete test files (the executor writes tests first per TDD skill)
+- Shell commands for running tests (the executor knows their test runner)
+- TDD step sequences (the TDD skill already enforces this)
+- Commit messages (the executor crafts these from context)
 
-After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
+## Plan Review Loop
 
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+After writing the complete plan:
 
-**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
+1. Dispatch a single plan-document-reviewer subagent (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
+   - Provide: path to the plan folder (or file), path to spec (folder: read `overview.md` first then section files; or a single .md file)
+2. If Issues Found: fix the issues, re-dispatch reviewer for the whole plan. If you find a spec requirement with no task, add the task.
+3. If Approved: proceed to execution handoff
 
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
-
-If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+**Review loop guidance:**
+- Same agent that wrote the plan fixes it (preserves context)
+- If loop exceeds 2 iterations, surface to human for guidance — a third automated pass rarely resolves what two couldn't
+- Reviewers are advisory — explain disagreements if you believe feedback is incorrect
 
 ## Execution Handoff
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `docs/superpowers/plans/<feature-name>/`. Two execution options:**
 
 **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 
